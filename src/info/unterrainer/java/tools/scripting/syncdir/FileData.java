@@ -40,7 +40,7 @@ public class FileData {
 		r.modified(new Date(dir.toFile().lastModified()));
 		r.fullPath(Utils.normalizeDirectory(r.path().toString()).replace("\\", "/"));
 		r.relativePath(r.fullPath().substring(r.basePath().length()));
-		r.relativePathAndName(r.relativePath() + r.name());
+		r.relativePathAndName(r.relativePath());
 
 		r.isDirectory(true);
 		r.name(Utils.normalizeDirectory(dir.getFileName().toString()).replace("\\", "/"));

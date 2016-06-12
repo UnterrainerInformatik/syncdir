@@ -106,7 +106,13 @@ public class SyncDir {
 			analyze();
 		}
 		if (mode.contains("sync")) {
-			sync(mode.contains("delete"));
+			Utils.sysout("### SYNCHRONIZING ##########################################################");
+			Utils.sysout("Directories:");
+			sync(dirActions, mode.contains("delete"));
+			Utils.sysout("############################################################################");
+			Utils.sysout("Files:");
+			sync(fileActions, mode.contains("delete"));
+			Utils.sysout("############################################################################");
 		}
 
 		Utils.sysout("Done.");
@@ -171,14 +177,14 @@ public class SyncDir {
 
 	private static List<Action> process(HashMap<String, FileData> sourceCache, HashMap<String, FileData> targetCache) {
 		List<Action> r = new ArrayList<>();
-		for (Entry<String, FileData> e : sourceFileCache.entrySet()) {
+		for (Entry<String, FileData> e : sourceCache.entrySet()) {
 			FileData s = e.getValue();
 			if (!targetCache.containsKey(e.getKey())) {
 				r.add(new Create(s, Utils.normalizeDirectory(targetDir), s.relativePathAndName()));
 			} else {
 				FileData t = targetCache.get(e.getKey());
 				t.cacheHit(true);
-				if (!t.modified().equals(s.modified()) || t.size() != s.size()) {
+				if (!s.isDirectory() && (!t.modified().equals(s.modified()) || t.size() != s.size())) {
 					r.add(new Replace(s, t));
 				}
 			}
@@ -201,8 +207,12 @@ public class SyncDir {
 		Utils.sysout("############################################################################");
 	}
 
-	private static void sync(boolean delete) {
-
+	private static void sync(List<Action> actions, boolean delete) {
+		for (Action a : actions) {
+			if (!(a instanceof Delete) || delete) {
+				a.doAction();
+			}
+		}
 	}
 
 	private static void checkSourceDirs() {
