@@ -1,5 +1,9 @@
 package info.unterrainer.java.tools.scripting.syncdir;
 
+import info.unterrainer.java.tools.scripting.syncdir.actions.Action;
+import info.unterrainer.java.tools.scripting.syncdir.actions.Create;
+import info.unterrainer.java.tools.scripting.syncdir.actions.Delete;
+import info.unterrainer.java.tools.scripting.syncdir.actions.Replace;
 import info.unterrainer.java.tools.scripting.syncdir.filevisitors.DirectoryNameEqualsVisitor;
 import info.unterrainer.java.tools.utils.NullUtils;
 import info.unterrainer.java.tools.utils.StringUtils;
@@ -41,12 +45,8 @@ public class SyncDir {
 	private static HashMap<String, FileData> targetDirCache;
 	private static HashMap<String, FileData> targetFileCache;
 
-	private static List<String> dirsToDelete = new ArrayList<>();
-	private static List<String> dirsToCreate = new ArrayList<>();
-
-	private static List<String> filesToDelete = new ArrayList<>();
-	private static List<String> filesToCreate = new ArrayList<>();
-	private static List<String> filesToReplace = new ArrayList<>();
+	private static List<Action> dirActions = new ArrayList<>();
+	private static List<Action> fileActions = new ArrayList<>();
 
 	public static void main(String[] args) {
 
@@ -99,7 +99,8 @@ public class SyncDir {
 		checkSourceDirs();
 		checkTargetDir();
 		readData();
-		calculate();
+		dirActions = process(sourceDirCache, targetDirCache);
+		fileActions = process(sourceFileCache, targetFileCache);
 
 		if (mode.contains("analyze")) {
 			analyze();
@@ -168,12 +169,36 @@ public class SyncDir {
 		}
 	}
 
-	private static void calculate() {
-
+	private static List<Action> process(HashMap<String, FileData> sourceCache, HashMap<String, FileData> targetCache) {
+		List<Action> r = new ArrayList<>();
+		for (Entry<String, FileData> e : sourceFileCache.entrySet()) {
+			FileData s = e.getValue();
+			if (!targetCache.containsKey(e.getKey())) {
+				r.add(new Create(s, Utils.normalizeDirectory(targetDir), s.relativePathAndName()));
+			} else {
+				FileData t = targetCache.get(e.getKey());
+				t.cacheHit(true);
+				if (!t.modified().equals(s.modified()) || t.size() != s.size()) {
+					r.add(new Replace(s, t));
+				}
+			}
+		}
+		for (FileData f : targetCache.values()) {
+			if (!f.cacheHit() && !Utils.normalizeDirectory(targetDir).equals(Utils.normalizeDirectory(f.fullPath()))) {
+				r.add(new Delete(f));
+			}
+		}
+		return r;
 	}
 
 	private static void analyze() {
-
+		Utils.sysout("### ANALYSIS ###############################################################");
+		Utils.sysout("Directories:");
+		printList(dirActions, "");
+		Utils.sysout("############################################################################");
+		Utils.sysout("Files:");
+		printList(fileActions, "");
+		Utils.sysout("############################################################################");
 	}
 
 	private static void sync(boolean delete) {
@@ -258,7 +283,6 @@ public class SyncDir {
 	private static void checkFileExists(List<String> dirs, String parameterName) {
 		for (String dir : dirs) {
 			File d = new File(dir);
-			String curr = Utils.normalizeDirectory(d.toPath().getFileName().toString()).replace("/", "\\");
 			if (!d.exists()) {
 				Utils.sysout("The " + parameterName + " you specified [" + d.toString() + "] doesn't exist.");
 				System.exit(1);
@@ -266,9 +290,9 @@ public class SyncDir {
 		}
 	}
 
-	private static void printList(List<String> list, String prefix) {
-		for (String s : list) {
-			Utils.sysout(prefix + s);
+	private static void printList(List<Action> list, String prefix) {
+		for (Action a : list) {
+			Utils.sysout(prefix + a);
 		}
 	}
 }

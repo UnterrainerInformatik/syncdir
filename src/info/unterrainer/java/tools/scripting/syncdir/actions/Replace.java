@@ -26,4 +26,9 @@ public class Replace extends Action {
 			e.getStackTraceAsString().sysout();
 		}
 	}
+
+	@Override
+	public String toString() {
+		return "replace " + target.toString() + " with " + source.toString();
+	}
 }

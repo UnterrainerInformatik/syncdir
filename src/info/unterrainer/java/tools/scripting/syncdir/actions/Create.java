@@ -15,14 +15,20 @@ import lombok.experimental.ExtensionMethod;
 public class Create extends Action {
 
 	private FileData source;
-	private FileData target;
+	private String targetBaseDir;
+	private String relativeTarget;
 
 	@Override
 	public void doAction() {
 		try {
-			source.fullPath().copyFile(target.fullPath());
+			source.fullPath().copyFile(targetBaseDir + relativeTarget);
 		} catch (IOException e) {
 			e.getStackTraceAsString().sysout();
 		}
+	}
+
+	@Override
+	public String toString() {
+		return "copy to " + targetBaseDir + relativeTarget + " from " + source.toString();
 	}
 }

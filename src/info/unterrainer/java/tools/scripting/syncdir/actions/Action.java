@@ -8,4 +8,7 @@ import lombok.experimental.Accessors;
 public abstract class Action {
 
 	public abstract void doAction();
+
+	@Override
+	public abstract String toString();
 }

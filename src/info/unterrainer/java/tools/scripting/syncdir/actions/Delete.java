@@ -15,4 +15,9 @@ public class Delete extends Action {
 	public void doAction() {
 		target.fullPath().delete();
 	}
+
+	@Override
+	public String toString() {
+		return "delete " + target.toString();
+	}
 }

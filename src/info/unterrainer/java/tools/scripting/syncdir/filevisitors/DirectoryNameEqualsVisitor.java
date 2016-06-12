@@ -29,7 +29,6 @@ import java.nio.file.FileVisitResult;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Date;
 import java.util.HashMap;
 
 import javax.annotation.ParametersAreNonnullByDefault;
@@ -52,43 +51,15 @@ public class DirectoryNameEqualsVisitor extends SimpleFileVisitor<Path> {
 
 	@Override
 	public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
-		FileData r = new FileData();
-		r.basePath(basePath);
-		r.path(dir);
-		r.fullPath(Utils.normalizeDirectory(r.path().toString()));
-		r.relativePath(r.fullPath().substring(r.basePath().length()));
-		r.relativePathAndName(r.relativePath() + r.name());
-
-		r.isDirectory(true);
-		r.name(Utils.normalizeDirectory(dir.getFileName().toString()).replace("/", "\\"));
+		FileData r = FileData.fromDir(dir, basePath);
 		dirCache.put(r.relativePathAndName(), r);
 		return FileVisitResult.CONTINUE;
 	}
 
 	@Override
 	public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-		FileData r = new FileData();
-		r.basePath(basePath);
-		r.path(file);
-		r.fullPath(r.path().toString());
-
-		r.name(file.getFileName().toString());
-		r.fileName(r.name().getNameNoExtension());
-
-		r.relativePath(r.fullPath().substring(r.basePath().length()));
-		r.relativePath(r.relativePath().substring(0, r.relativePath().length() - r.name().length()));
-		r.relativePathAndName(r.relativePath() + r.name());
-
-		r.modified(new Date(attrs.lastModifiedTime().toMillis()));
-		r.created(new Date(attrs.creationTime().toMillis()));
-		r.isDirectory(attrs.isDirectory());
-		r.isSymbolicLink(attrs.isSymbolicLink());
-		r.isRegularFile(attrs.isRegularFile());
-		r.isOther(attrs.isOther());
-		r.extension(r.name().getExtension());
-		r.size(attrs.size());
+		FileData r = FileData.fromFile(file, attrs, basePath);
 		fileCache.put(r.relativePathAndName(), r);
-
 		return FileVisitResult.CONTINUE;
 	}
 
