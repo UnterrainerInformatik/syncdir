@@ -12,6 +12,8 @@ import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
 
+import info.unterrainer.java.tools.reporting.consoleprogressbar.ConsoleProgressBar;
+import info.unterrainer.java.tools.reporting.consoleprogressbar.drawablecomponents.ProgressBar;
 import info.unterrainer.java.tools.scripting.syncdir.actions.Action;
 import info.unterrainer.java.tools.scripting.syncdir.actions.Create;
 import info.unterrainer.java.tools.scripting.syncdir.actions.Delete;
@@ -47,6 +49,24 @@ public class SyncDir {
 	private static long filesToCopy;
 	private static long bytesToDelete;
 	private static long filesToDelete;
+	private static long dirsToDelete;
+
+	private static double progressCurrent;
+	private static double progressTotal;
+	private static double maxCurrent = 65000;
+	private static double maxTotal = 65000;
+
+	private static ProgressBar barComponentTotal = ProgressBar.builder().build();
+	private static ConsoleProgressBar barTotal = ConsoleProgressBar.builder().width(10).minValue(0d).maxValue(maxTotal).component(barComponentTotal).build();
+
+	private static ProgressBar barComponentCurrent = ProgressBar.builder().build();
+	private static ConsoleProgressBar barCurrent = ConsoleProgressBar
+			.builder()
+			.width(10)
+			.minValue(0d)
+			.maxValue(maxTotal)
+			.component(barComponentCurrent)
+			.build();
 
 	public static void main(String[] args) {
 
@@ -105,28 +125,63 @@ public class SyncDir {
 		if (mode.contains("analyze")) {
 			analyze();
 		}
+
+		printSummary(mode.contains("delete"));
+
+		progressTotal = 0;
+		maxTotal = filesToCopy;
+		barComponentTotal.setPrefix("total:");
 		if (mode.contains("sync")) {
-			Utils.sysout("############################################################################");
-			Utils.sysout("### SYNCHRONIZING ##########################################################");
-			Utils.sysout("############################################################################");
 			if (mode.contains("delete")) {
+				maxTotal += dirsToDelete + filesToDelete;
 				Utils.sysout("### DELETING ###############################################################");
-				Utils.sysout("Directories:");
+				Utils.sysout("### Directories:");
+				progressCurrent = 0;
+				maxCurrent = dirsToDelete;
 				sync(dirActions, true);
-				Utils.sysout("############################################################################");
-				Utils.sysout("Files:");
+				Utils.sysout("### Files:");
+				progressCurrent = 0;
+				maxCurrent = filesToDelete;
 				sync(fileActions, true);
+				Utils.sysout();
 			}
 			Utils.sysout("### SYNCHRONIZING ##########################################################");
-			Utils.sysout("Directories:");
+			progressCurrent = 0;
+			maxCurrent = filesToCopy;
+			Utils.sysout("### Directories:");
 			sync(dirActions, false);
-			Utils.sysout("############################################################################");
-			Utils.sysout("Files:");
+			Utils.sysout("### Files:");
 			sync(fileActions, false);
-			Utils.sysout("############################################################################");
 		}
 
 		Utils.sysout("Done.");
+	}
+
+	private static void printSummaryDelete() {
+		Utils.sysout("deleting " + dirsToDelete + " directories.");
+		Utils.sysout("deleting " + filesToDelete + " files worth " + Utils.humanReadableByteCount(bytesToDelete, true) + ".");
+	}
+
+	private static void printSummaryCopy() {
+		Utils.sysout("copying " + filesToCopy + " files worth " + Utils.humanReadableByteCount(bytesToCopy, true) + ".");
+	}
+
+	private static void printSummary(boolean delete) {
+		Utils.sysout("### SUMMARY ################################################################");
+		if (delete) {
+			printSummaryDelete();
+		}
+		printSummaryCopy();
+		Utils.sysout();
+	}
+
+	private static void analyze() {
+		Utils.sysout("### ANALYSIS ###############################################################");
+		Utils.sysout("### Directories:");
+		printList(dirActions, "");
+		Utils.sysout("### Files:");
+		printList(fileActions, "");
+		Utils.sysout();
 	}
 
 	private static void wrongNumberOfArguments(String program, String fallbackConfigFn) {
@@ -212,30 +267,27 @@ public class SyncDir {
 			String tt = Utils.normalizeDirectory(targetDir);
 			if (tt != null && !t.cacheHit() && !tt.equals(Utils.normalizeDirectory(t.fullPath()))) {
 				// DELETE.
-				filesToDelete++;
-				bytesToDelete += t.size();
+				if (t.isDirectory()) {
+					dirsToDelete++;
+				} else {
+					filesToDelete++;
+					bytesToDelete += t.size();
+				}
 				r.add(new Delete(t));
 			}
 		}
 		return r;
 	}
 
-	private static void analyze() {
-		Utils.sysout("### ANALYSIS ###############################################################");
-		Utils.sysout("Directories:");
-		printList(dirActions, "");
-		Utils.sysout("############################################################################");
-		Utils.sysout("Files:");
-		printList(fileActions, "");
-		Utils.sysout("############################################################################");
-	}
-
 	private static void sync(List<Action> actions, boolean delete) {
+		drawProgressBars();
 		for (Action a : actions) {
 			if ((a instanceof Delete && delete) || (!(a instanceof Delete) && !delete)) {
 				a.doAction();
+				updateProgressBars();
 			}
 		}
+		removeProgressBars();
 	}
 
 	private static void checkSourceDirs() {
@@ -327,5 +379,34 @@ public class SyncDir {
 		for (Action a : list) {
 			Utils.sysout(prefix + a);
 		}
+	}
+
+	private static void updateProgressBars() {
+
+		if (!barTotal.isDrawInitialized() && !barCurrent.isDrawInitialized()) {
+			barTotal.draw(System.out);
+			barCurrent.draw(System.out);
+		}
+
+		barTotal.getFader().setMaximalValue(maxTotal);
+		barTotal.updateValue(progressTotal);
+
+		barCurrent.getFader().setMaximalValue(maxCurrent);
+		barCurrent.updateValue(progressCurrent);
+
+		if (barCurrent.isRedrawNecessary() || barTotal.isRedrawNecessary()) {
+			removeProgressBars();
+			drawProgressBars();
+		}
+	}
+
+	private static void removeProgressBars() {
+		barCurrent.remove(System.out);
+		barTotal.remove(System.out);
+	}
+
+	private static void drawProgressBars() {
+		barTotal.draw(System.out);
+		barCurrent.draw(System.out);
 	}
 }
