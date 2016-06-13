@@ -19,11 +19,6 @@
  ***************************************************************************/
 package info.unterrainer.java.tools.scripting.syncdir.filevisitors;
 
-import info.unterrainer.java.tools.scripting.syncdir.FileData;
-import info.unterrainer.java.tools.scripting.syncdir.Utils;
-import info.unterrainer.java.tools.utils.NullUtils;
-import info.unterrainer.java.tools.utils.files.FileUtils;
-
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Path;
@@ -31,12 +26,13 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashMap;
 
-import javax.annotation.ParametersAreNonnullByDefault;
-
+import info.unterrainer.java.tools.scripting.syncdir.FileData;
+import info.unterrainer.java.tools.scripting.syncdir.Utils;
+import info.unterrainer.java.tools.utils.NullUtils;
+import info.unterrainer.java.tools.utils.files.FileUtils;
 import lombok.experimental.ExtensionMethod;
 
 @ExtensionMethod({ NullUtils.class, FileUtils.class })
-@ParametersAreNonnullByDefault({})
 public class DirectoryNameEqualsVisitor extends SimpleFileVisitor<Path> {
 
 	private HashMap<String, FileData> dirCache;

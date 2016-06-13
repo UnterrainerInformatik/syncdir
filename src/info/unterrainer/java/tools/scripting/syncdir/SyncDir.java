@@ -1,13 +1,5 @@
 package info.unterrainer.java.tools.scripting.syncdir;
 
-import info.unterrainer.java.tools.scripting.syncdir.actions.Action;
-import info.unterrainer.java.tools.scripting.syncdir.actions.Create;
-import info.unterrainer.java.tools.scripting.syncdir.actions.Delete;
-import info.unterrainer.java.tools.scripting.syncdir.actions.Replace;
-import info.unterrainer.java.tools.scripting.syncdir.filevisitors.DirectoryNameEqualsVisitor;
-import info.unterrainer.java.tools.utils.NullUtils;
-import info.unterrainer.java.tools.utils.StringUtils;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -16,16 +8,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
 
-import javax.annotation.ParametersAreNonnullByDefault;
-
-import lombok.experimental.ExtensionMethod;
-
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.PropertiesConfiguration;
 
+import info.unterrainer.java.tools.scripting.syncdir.actions.Action;
+import info.unterrainer.java.tools.scripting.syncdir.actions.Create;
+import info.unterrainer.java.tools.scripting.syncdir.actions.Delete;
+import info.unterrainer.java.tools.scripting.syncdir.actions.Replace;
+import info.unterrainer.java.tools.scripting.syncdir.filevisitors.DirectoryNameEqualsVisitor;
+import info.unterrainer.java.tools.utils.NullUtils;
+import info.unterrainer.java.tools.utils.StringUtils;
+import lombok.experimental.ExtensionMethod;
+
 @ExtensionMethod({ NullUtils.class, StringUtils.class })
-@ParametersAreNonnullByDefault({})
 public class SyncDir {
 
 	private static final String programName = "syncdir";
@@ -47,6 +43,10 @@ public class SyncDir {
 
 	private static List<Action> dirActions = new ArrayList<>();
 	private static List<Action> fileActions = new ArrayList<>();
+	private static long bytesToCopy;
+	private static long filesToCopy;
+	private static long bytesToDelete;
+	private static long filesToDelete;
 
 	public static void main(String[] args) {
 
@@ -106,12 +106,23 @@ public class SyncDir {
 			analyze();
 		}
 		if (mode.contains("sync")) {
+			Utils.sysout("############################################################################");
+			Utils.sysout("### SYNCHRONIZING ##########################################################");
+			Utils.sysout("############################################################################");
+			if (mode.contains("delete")) {
+				Utils.sysout("### DELETING ###############################################################");
+				Utils.sysout("Directories:");
+				sync(dirActions, true);
+				Utils.sysout("############################################################################");
+				Utils.sysout("Files:");
+				sync(fileActions, true);
+			}
 			Utils.sysout("### SYNCHRONIZING ##########################################################");
 			Utils.sysout("Directories:");
-			sync(dirActions, mode.contains("delete"));
+			sync(dirActions, false);
 			Utils.sysout("############################################################################");
 			Utils.sysout("Files:");
-			sync(fileActions, mode.contains("delete"));
+			sync(fileActions, false);
 			Utils.sysout("############################################################################");
 		}
 
@@ -180,18 +191,30 @@ public class SyncDir {
 		for (Entry<String, FileData> e : sourceCache.entrySet()) {
 			FileData s = e.getValue();
 			if (!targetCache.containsKey(e.getKey())) {
+				// CREATE.
+				filesToCopy++;
+				bytesToCopy += s.size();
 				r.add(new Create(s, Utils.normalizeDirectory(targetDir), s.relativePathAndName()));
 			} else {
 				FileData t = targetCache.get(e.getKey());
 				t.cacheHit(true);
 				if (!s.isDirectory() && (!t.modified().equals(s.modified()) || t.size() != s.size())) {
+					// REPLACE.
+					filesToCopy++;
+					bytesToCopy += s.size();
+					filesToDelete++;
+					bytesToDelete += t.size();
 					r.add(new Replace(s, t));
 				}
 			}
 		}
-		for (FileData f : targetCache.values()) {
-			if (!f.cacheHit() && !Utils.normalizeDirectory(targetDir).equals(Utils.normalizeDirectory(f.fullPath()))) {
-				r.add(new Delete(f));
+		for (FileData t : targetCache.values()) {
+			String tt = Utils.normalizeDirectory(targetDir);
+			if (tt != null && !t.cacheHit() && !tt.equals(Utils.normalizeDirectory(t.fullPath()))) {
+				// DELETE.
+				filesToDelete++;
+				bytesToDelete += t.size();
+				r.add(new Delete(t));
 			}
 		}
 		return r;
@@ -209,7 +232,7 @@ public class SyncDir {
 
 	private static void sync(List<Action> actions, boolean delete) {
 		for (Action a : actions) {
-			if (!(a instanceof Delete) || delete) {
+			if ((a instanceof Delete && delete) || (!(a instanceof Delete) && !delete)) {
 				a.doAction();
 			}
 		}
