@@ -1,12 +1,11 @@
 package info.unterrainer.java.tools.scripting.syncdir.actions;
 
+import java.io.IOException;
+
 import info.unterrainer.java.tools.scripting.syncdir.FileData;
 import info.unterrainer.java.tools.scripting.syncdir.Utils;
 import info.unterrainer.java.tools.utils.StringUtils;
 import info.unterrainer.java.tools.utils.files.FileUtils;
-
-import java.io.IOException;
-
 import lombok.AllArgsConstructor;
 import lombok.experimental.ExtensionMethod;
 
@@ -21,7 +20,7 @@ public class Replace extends Action {
 	public void doAction() {
 		target.fullPath().delete();
 		try {
-			source.fullPath().copyFile(target.fullPath());
+			Utils.copyLargeFile(source.fullPath(), target.fullPath());
 		} catch (IOException e) {
 			e.getStackTraceAsString().sysout();
 		}

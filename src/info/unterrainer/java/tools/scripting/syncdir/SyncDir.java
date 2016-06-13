@@ -51,22 +51,11 @@ public class SyncDir {
 	private static long filesToDelete;
 	private static long dirsToDelete;
 
-	private static double progressCurrent;
-	private static double progressTotal;
-	private static double maxCurrent = 65000;
-	private static double maxTotal = 65000;
+	public static double progress;
+	private static double max = 65000;
 
-	private static ProgressBar barComponentTotal = ProgressBar.builder().build();
-	private static ConsoleProgressBar barTotal = ConsoleProgressBar.builder().width(10).minValue(0d).maxValue(maxTotal).component(barComponentTotal).build();
-
-	private static ProgressBar barComponentCurrent = ProgressBar.builder().build();
-	private static ConsoleProgressBar barCurrent = ConsoleProgressBar
-			.builder()
-			.width(10)
-			.minValue(0d)
-			.maxValue(maxTotal)
-			.component(barComponentCurrent)
-			.build();
+	private static ProgressBar barComponent = ProgressBar.builder().build();
+	private static ConsoleProgressBar bar = ConsoleProgressBar.builder().width(78).minValue(0d).maxValue(max).component(barComponent).build();
 
 	public static void main(String[] args) {
 
@@ -128,26 +117,23 @@ public class SyncDir {
 
 		printSummary(mode.contains("delete"));
 
-		progressTotal = 0;
-		maxTotal = filesToCopy;
-		barComponentTotal.setPrefix("total:");
 		if (mode.contains("sync")) {
 			if (mode.contains("delete")) {
-				maxTotal += dirsToDelete + filesToDelete;
+				max += dirsToDelete + filesToDelete;
 				Utils.sysout("### DELETING ###############################################################");
 				Utils.sysout("### Directories:");
-				progressCurrent = 0;
-				maxCurrent = dirsToDelete;
+				progress = 0;
+				max = dirsToDelete;
 				sync(dirActions, true);
 				Utils.sysout("### Files:");
-				progressCurrent = 0;
-				maxCurrent = filesToDelete;
+				progress = 0;
+				max = filesToDelete;
 				sync(fileActions, true);
 				Utils.sysout();
 			}
 			Utils.sysout("### SYNCHRONIZING ##########################################################");
-			progressCurrent = 0;
-			maxCurrent = filesToCopy;
+			progress = 0;
+			max = bytesToCopy;
 			Utils.sysout("### Directories:");
 			sync(dirActions, false);
 			Utils.sysout("### Files:");
@@ -155,6 +141,18 @@ public class SyncDir {
 		}
 
 		Utils.sysout("Done.");
+	}
+
+	private static void sync(List<Action> actions, boolean delete) {
+		drawProgressBars();
+		for (Action a : actions) {
+			boolean isDelete = a instanceof Delete;
+			if ((isDelete && delete) || (!isDelete && !delete)) {
+				a.doAction();
+				updateProgressBars();
+			}
+		}
+		removeProgressBars();
 	}
 
 	private static void printSummaryDelete() {
@@ -279,17 +277,6 @@ public class SyncDir {
 		return r;
 	}
 
-	private static void sync(List<Action> actions, boolean delete) {
-		drawProgressBars();
-		for (Action a : actions) {
-			if ((a instanceof Delete && delete) || (!(a instanceof Delete) && !delete)) {
-				a.doAction();
-				updateProgressBars();
-			}
-		}
-		removeProgressBars();
-	}
-
 	private static void checkSourceDirs() {
 		checkFileExists(sourceDirs, "sourceDirs");
 	}
@@ -381,32 +368,26 @@ public class SyncDir {
 		}
 	}
 
-	private static void updateProgressBars() {
+	public static void updateProgressBars() {
 
-		if (!barTotal.isDrawInitialized() && !barCurrent.isDrawInitialized()) {
-			barTotal.draw(System.out);
-			barCurrent.draw(System.out);
+		if (!bar.isDrawInitialized()) {
+			bar.draw(System.out);
 		}
 
-		barTotal.getFader().setMaximalValue(maxTotal);
-		barTotal.updateValue(progressTotal);
+		bar.getFader().setMaximalValue(max);
+		bar.updateValue(progress);
 
-		barCurrent.getFader().setMaximalValue(maxCurrent);
-		barCurrent.updateValue(progressCurrent);
-
-		if (barCurrent.isRedrawNecessary() || barTotal.isRedrawNecessary()) {
+		if (bar.isRedrawNecessary()) {
 			removeProgressBars();
 			drawProgressBars();
 		}
 	}
 
 	private static void removeProgressBars() {
-		barCurrent.remove(System.out);
-		barTotal.remove(System.out);
+		bar.remove(System.out);
 	}
 
 	private static void drawProgressBars() {
-		barTotal.draw(System.out);
-		barCurrent.draw(System.out);
+		bar.draw(System.out);
 	}
 }

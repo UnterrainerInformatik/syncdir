@@ -1,5 +1,8 @@
 package info.unterrainer.java.tools.scripting.syncdir;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -48,6 +51,27 @@ public class Utils {
 		}
 
 		return result;
+	}
+
+	public static void copyLargeFile(String source, String dest) throws IOException {
+		FileInputStream sourceStream = null;
+		FileOutputStream destStream = null;
+		int r = 0;
+		byte[] b = new byte[2048];
+
+		sourceStream = new FileInputStream(source);
+		destStream = new FileOutputStream(dest);
+		while ((r = sourceStream.read(b)) != -1) {
+			destStream.write(b, 0, r);
+			updateProgressBars(r);
+		}
+		sourceStream.close();
+		destStream.close();
+	}
+
+	public static void updateProgressBars(int r) {
+		SyncDir.progress += r;
+		SyncDir.updateProgressBars();
 	}
 
 	public static void sysoutNN(@Nullable String input) {

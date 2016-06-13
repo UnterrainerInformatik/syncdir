@@ -1,13 +1,12 @@
 package info.unterrainer.java.tools.scripting.syncdir.actions;
 
+import java.io.File;
+import java.io.IOException;
+
 import info.unterrainer.java.tools.scripting.syncdir.FileData;
 import info.unterrainer.java.tools.scripting.syncdir.Utils;
 import info.unterrainer.java.tools.utils.StringUtils;
 import info.unterrainer.java.tools.utils.files.FileUtils;
-
-import java.io.File;
-import java.io.IOException;
-
 import lombok.AllArgsConstructor;
 import lombok.experimental.ExtensionMethod;
 
@@ -25,7 +24,7 @@ public class Create extends Action {
 			if (source.isDirectory()) {
 				new File(targetBaseDir + relativeTarget).mkdirs();
 			} else {
-				source.fullPath().copyFile(targetBaseDir + relativeTarget);
+				Utils.copyLargeFile(source.fullPath(), targetBaseDir + relativeTarget);
 			}
 		} catch (IOException e) {
 			e.getStackTraceAsString().sysout();
