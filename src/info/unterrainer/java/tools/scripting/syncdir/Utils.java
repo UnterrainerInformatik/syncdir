@@ -10,6 +10,7 @@ import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 
+import lombok.Cleanup;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
@@ -54,7 +55,9 @@ public class Utils {
 	}
 
 	public static void copyLargeFile(String source, String dest) throws IOException {
+		@Cleanup
 		FileInputStream sourceStream = null;
+		@Cleanup
 		FileOutputStream destStream = null;
 		int r = 0;
 		byte[] b = new byte[2048];
@@ -65,8 +68,6 @@ public class Utils {
 			destStream.write(b, 0, r);
 			updateProgressBars(r);
 		}
-		sourceStream.close();
-		destStream.close();
 	}
 
 	public static void updateProgressBars(int r) {
