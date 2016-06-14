@@ -48,23 +48,33 @@ public class DirectoryNameEqualsVisitor extends SimpleFileVisitor<Path> {
 	@Override
 	public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
 		FileData r = FileData.fromDir(dir, basePath);
-		dirCache.put(r.relativePathAndName(), r);
+		if (r != null) {
+			if (r.fullPath().contains("/$RECYCLE.BIN/")) {
+				return FileVisitResult.SKIP_SUBTREE;
+			}
+			dirCache.put(r.relativePathAndName(), r);
+		}
 		return FileVisitResult.CONTINUE;
 	}
 
 	@Override
 	public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
 		FileData r = FileData.fromFile(file, attrs, basePath);
-		fileCache.put(r.relativePathAndName(), r);
+		if (r != null) {
+			if (r.fullPath().contains("/$RECYCLE.BIN/")) {
+				return FileVisitResult.SKIP_SUBTREE;
+			}
+			fileCache.put(r.relativePathAndName(), r);
+		}
 		return FileVisitResult.CONTINUE;
 	}
 
 	// If there is some error accessing the file, let the user know. If you don't override this method and an error
 	// occurs, an IOException is thrown.
 	@Override
-	public FileVisitResult visitFileFailed(Path file, IOException exc) {
-		System.err.println(exc);
-		return FileVisitResult.CONTINUE;
+	public FileVisitResult visitFileFailed(Path file, IOException e) {
+		Utils.sysout(e.toString());
+		return FileVisitResult.SKIP_SUBTREE;
 	}
 
 	public HashMap<String, FileData> getDirCache() {

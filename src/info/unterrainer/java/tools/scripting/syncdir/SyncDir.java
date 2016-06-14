@@ -99,7 +99,7 @@ public class SyncDir {
 		}
 
 		// Get parameter targetDir.
-		targetDir = config.getString("targetDir");
+		targetDir = Utils.normalizeDirectory(config.getString("targetDir"));
 		if (targetDir == null || targetDir.isBlank()) {
 			Utils.sysout("You have to specify a single valid targetDir value!");
 			System.exit(1);
@@ -121,14 +121,14 @@ public class SyncDir {
 			if (mode.contains("delete")) {
 				max += dirsToDelete + filesToDelete;
 				Utils.sysout("### DELETING ###############################################################");
-				Utils.sysout("### Directories:");
-				progress = 0;
-				max = dirsToDelete;
-				sync(dirActions, true);
 				Utils.sysout("### Files:");
 				progress = 0;
 				max = filesToDelete;
 				sync(fileActions, true);
+				Utils.sysout("### Directories:");
+				progress = 0;
+				max = dirsToDelete;
+				sync(dirActions, true);
 				Utils.sysout();
 			}
 			Utils.sysout("### SYNCHRONIZING ##########################################################");
@@ -251,7 +251,7 @@ public class SyncDir {
 			} else {
 				FileData t = targetCache.get(e.getKey());
 				t.cacheHit(true);
-				if (!s.isDirectory() && (!t.modified().equals(s.modified()) || t.size() != s.size())) {
+				if (!s.isDirectory() && (t.modified().before(s.modified()) || t.size() != s.size())) {
 					// REPLACE.
 					filesToCopy++;
 					bytesToCopy += s.size();
