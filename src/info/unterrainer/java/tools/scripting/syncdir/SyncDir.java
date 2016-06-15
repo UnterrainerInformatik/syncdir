@@ -19,11 +19,12 @@ import info.unterrainer.java.tools.scripting.syncdir.actions.Create;
 import info.unterrainer.java.tools.scripting.syncdir.actions.Delete;
 import info.unterrainer.java.tools.scripting.syncdir.actions.Replace;
 import info.unterrainer.java.tools.scripting.syncdir.filevisitors.DirectoryNameEqualsVisitor;
+import info.unterrainer.java.tools.utils.HrfUtils;
 import info.unterrainer.java.tools.utils.NullUtils;
 import info.unterrainer.java.tools.utils.StringUtils;
 import lombok.experimental.ExtensionMethod;
 
-@ExtensionMethod({ NullUtils.class, StringUtils.class })
+@ExtensionMethod({ NullUtils.class, StringUtils.class, HrfUtils.class })
 public class SyncDir {
 
 	private static final String programName = "syncdir";
@@ -157,11 +158,11 @@ public class SyncDir {
 
 	private static void printSummaryDelete() {
 		Utils.sysout("deleting " + dirsToDelete + " directories.");
-		Utils.sysout("deleting " + filesToDelete + " files worth " + Utils.humanReadableByteCount(bytesToDelete, true) + ".");
+		Utils.sysout("deleting " + filesToDelete + " files worth " + bytesToDelete.toHumanReadableByteCount() + ".");
 	}
 
 	private static void printSummaryCopy() {
-		Utils.sysout("copying " + filesToCopy + " files worth " + Utils.humanReadableByteCount(bytesToCopy, true) + ".");
+		Utils.sysout("copying " + filesToCopy + " files worth " + bytesToCopy.toHumanReadableByteCount() + ".");
 	}
 
 	private static void printSummary(boolean delete) {

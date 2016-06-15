@@ -5,6 +5,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
+import info.unterrainer.java.tools.utils.HrfUtils;
 import info.unterrainer.java.tools.utils.NullUtils;
 import info.unterrainer.java.tools.utils.files.FileUtils;
 import lombok.Data;
@@ -13,7 +14,7 @@ import lombok.experimental.ExtensionMethod;
 
 @Data
 @Accessors(fluent = true)
-@ExtensionMethod({ NullUtils.class, FileUtils.class })
+@ExtensionMethod({ NullUtils.class, FileUtils.class, HrfUtils.class })
 public class FileData {
 	private boolean isDirectory;
 	private boolean isSymbolicLink;
@@ -98,7 +99,7 @@ public class FileData {
 		s += "][m:";
 		s += new SimpleDateFormat("yyyy-MM-dd_hh:mm:ss.SSS").format(modified);
 		s += "][s:";
-		s += Utils.humanReadableByteCount(size, true);
+		s += size.toHumanReadableByteCount();
 		s += "]";
 		return s + fullPath;
 	}
