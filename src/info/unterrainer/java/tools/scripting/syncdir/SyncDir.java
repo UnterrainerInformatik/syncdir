@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
@@ -29,10 +30,23 @@ public class SyncDir {
 
 	private static final String programName = "syncdir";
 	private static final String fallbackConfigFn = "config.properties";
+	private static final String USAGE = programName
+			+ " [-analyze|-sync] [options] source [source...] target\n\n"
+			+ "where...\n"
+			+ "[-analyze -a]|[-sync -s]\n"
+			+ "		One of them is mandatory. If you choose -sync you may\n"
+			+ " 		as well add -analyze later on in the options.\n"
+			+ "options:\n"
+			+ "-h 		Shows this information.\n"
+			+ "-delete -del -d	Does not only sync all the files and directories to the target,\n"
+			+ " 		but deletes superfluous files and directories on the target as well.\n"
+			+ "-analyze -a 	Does an additional analysis of the actions that will be taken\n"
+			+ " 		in order to sync the directories and prints them out to the console.\n"
+			+ " 		If you specify -analyze as main-parameter instead of -sync the program\n"
+			+ " 		doesn't do anything else but to analyze.";
 
 	private static Configuration config;
 
-	private static String os;
 	private static String mode;
 
 	private static String targetDir;
@@ -60,11 +74,15 @@ public class SyncDir {
 
 	public static void main(String[] args) {
 
-		if (args.length > 1) {
-			wrongNumberOfArguments(programName, fallbackConfigFn);
+		if (Arrays.stream(args).anyMatch(x -> x == "-h" || x == "-H")) {
+			argumentError(programName, "", USAGE, fallbackConfigFn);
 		}
-		String configFileName = parseArg(args, 0);
-		config = readConfigurationFile(configFileName, fallbackConfigFn);
+		if (args.length == 0 || args.length == 1) {
+			String configFileName = parseArg(args, 0);
+			config = readConfigurationFile(configFileName, fallbackConfigFn);
+		} else {
+			parseCommandLine(args);
+		}
 
 		mode = config.getString("mode");
 		if (mode == null || mode.isEmpty()) {
@@ -80,10 +98,6 @@ public class SyncDir {
 			Utils.sysout("You have to specify a valid mode! 'delete' is only viable in 'sync' mode, not in 'analyze' mode.");
 			System.exit(1);
 		}
-		os = config.getString("os");
-		if (os == null || os.isEmpty() || !os.equals("mac")) {
-			os = "windows";
-		}
 
 		// Get parameter sourceDirs.
 		String[] t = config.getStringArray("sourceDirs");
@@ -91,7 +105,7 @@ public class SyncDir {
 		if (t != null) {
 			for (String s : t) {
 				if (s != null && !s.isBlank()) {
-					sourceDirs.add(Utils.normalizeDirectory(s));
+					sourceDirs.add(Utils.normalizeDirectory(s.replace("\\", "/")));
 				}
 			}
 		} else {
@@ -105,6 +119,7 @@ public class SyncDir {
 			Utils.sysout("You have to specify a single valid targetDir value!");
 			System.exit(1);
 		}
+		targetDir = targetDir.replace("\\", "/");
 
 		checkSourceDirs();
 		checkTargetDir();
@@ -142,6 +157,42 @@ public class SyncDir {
 		}
 
 		Utils.sysout("Done.");
+	}
+
+	private static void parseCommandLine(String[] args) {
+		config = new PropertiesConfiguration();
+		String confVal = "";
+		String curr = parseArg(args, 0).toLowerCase();
+		if (curr.equals("-sync") || curr.equals("-s")) {
+			confVal += " sync";
+		} else if (curr.equals("-analyze") || curr.equals("-a")) {
+			confVal += " analyze";
+		} else {
+			argumentError(programName, "First argument is not optional. ", USAGE, fallbackConfigFn);
+		}
+
+		String targetDir = null;
+		List<String> sources = new ArrayList<>();
+		for (int i = 1; i < args.length; i++) {
+			curr = parseArg(args, i).toLowerCase();
+			if (curr.equals("-analyze") || curr.equals("-a")) {
+				confVal += " analyze";
+			} else if (curr.equals("-delete") || curr.equals("-del") || curr.equals("-d")) {
+				confVal += " delete";
+			} else {
+				if (i == args.length - 1) {
+					// This is the last parameter.
+					targetDir = curr;
+				} else {
+					sources.add(curr);
+				}
+			}
+		}
+		config.addProperty("mode", confVal);
+		if (targetDir != null) {
+			config.addProperty("targetDir", targetDir);
+		}
+		config.addProperty("sourceDirs", sources);
 	}
 
 	private static void sync(List<Action> actions, boolean delete) {
@@ -183,8 +234,9 @@ public class SyncDir {
 		Utils.sysout();
 	}
 
-	private static void wrongNumberOfArguments(String program, String fallbackConfigFn) {
-		Utils.sysout("Wrong number of arguments. Usage:\n"
+	private static void argumentError(String program, String error, String usage, String fallbackConfigFn) {
+		Utils.sysout(error
+				+ "Usage:\n"
 				+ program
 				+ "\n"
 				+ "or\n"
@@ -193,7 +245,10 @@ public class SyncDir {
 				+ "If you specify a config file, it has to be a valid apache-configuration file. "
 				+ "If you don't, the program will try to fall back on a file named '"
 				+ fallbackConfigFn
-				+ "' located in the directory you started the application from.");
+				+ "' located in the directory you started the application from."
+				+ "\n\n"
+				+ "You may as well call it just using command-line parameters like so:\n"
+				+ usage);
 		System.exit(1);
 	}
 
