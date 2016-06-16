@@ -42,7 +42,15 @@ All of our projects facilitate the [Project Lombok][lombok]. So please download 
 **Beware:** Project Lombok currently doesn't play well with Eclipse Mars (4.5). You'll get build-errors using the extension methods as of now.
 
 # SyncDir
+This is yet another synchronization program.
+I've come across the problem when I wanted to backup my large music-collection periodically. Some things change, most of them don't. Depends on how many albums I am buying at the moment.
+Usually I'm fine with just copy-pasting the root folders from the source-pladder to the backup-disc.
 
+But every now and then I move a folder. And that's where the problem starts. The copy-paste technique doesn't delete the old, now superfluous folder.
+
+That's where this program comes in. You point it at one or more source directories and a single target directory and it tells you exactly how many files and folders there are to create/replace/delete and then does so.
+
+You may use it with a config-file or command-line parameters.
 
 First, you'll need the Java **JRE version 1.8** (**Java SE 8**) or higher.
 Make sure that java.exe is on your path, or start the following commands with the path to your java installation (the `/bin` directory of the one you've just downloaded).
@@ -53,8 +61,37 @@ java -jar syncdir-0.1-jar-with-dependencies.jar
 ```
 or put these lines in a batch-file (should be more convenient):
 ```
-java -jar syncdir-0.1-jar-with-dependencies.jar
+java -jar syncdir-0.1-jar-with-dependencies.jar %*
 pause
+```
+We've put one in the target folder already for your convenience.
+
+## The Commandline Parameters
+
+```dos
+R:\SyncDir>java -jar syncdir-0.1-jar-with-dependencies.jar -h
+Usage:
+syncdir
+or
+syncdir <configFilePathAndName>
+
+If you specify a config file, it has to be a valid apache-configuration file. If you don't, the program will try to fall back on a file named 'config.properties' located in the directory you started the application from.
+
+You may as well call it just using command-line parameters like so:
+syncdir <-analyze|-sync> <options> source <source...> target
+
+where...
+[-analyze -a]|[-sync -s]
+                One of them is mandatory. If you choose -sync you may
+                as well add -analyze later on in the options.
+options:
+-h -?           Shows this information.
+-delete -del -d Does not only sync all the files and directories to the target,
+                but deletes superfluous files and directories on the target as well.
+-analyze -a     Does an additional analysis of the actions that will be taken
+                in order to sync the directories and prints them out to the console.
+                If you specify -analyze as main-parameter instead of -sync the program
+                doesn't do anything else but to analyze.
 ```
 
 ## The Config File  

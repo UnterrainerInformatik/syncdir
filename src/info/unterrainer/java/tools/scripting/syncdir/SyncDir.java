@@ -38,7 +38,7 @@ public class SyncDir {
 			+ "		One of them is mandatory. If you choose -sync you may\n"
 			+ " 		as well add -analyze later on in the options.\n"
 			+ "options:\n"
-			+ "-h 		Shows this information.\n"
+			+ "-h -?	Shows this information.\n"
 			+ "-delete -del -d	Does not only sync all the files and directories to the target,\n"
 			+ " 		but deletes superfluous files and directories on the target as well.\n"
 			+ "-analyze -a 	Does an additional analysis of the actions that will be taken\n"
@@ -85,7 +85,7 @@ public class SyncDir {
 
 	public static void main(String[] args) {
 
-		if (Arrays.stream(args).anyMatch(x -> x.equals("-h") || x.equals("-H"))) {
+		if (Arrays.stream(args).anyMatch(x -> x.equals("-h") || x.equals("-H") || x.equals("-?"))) {
 			argumentError(programName, "", USAGE, fallbackConfigFn);
 		}
 		if (args.length == 0 || args.length == 1) {
