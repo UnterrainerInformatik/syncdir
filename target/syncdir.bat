@@ -1,0 +1,1 @@
+java -jar syncdir-0.1-jar-with-dependencies.jar %*
