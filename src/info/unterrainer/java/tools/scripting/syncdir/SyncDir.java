@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
@@ -71,6 +72,10 @@ public class SyncDir {
 
 	private static ProgressBar barComponent = ProgressBar.builder().build();
 	private static ConsoleProgressBar bar = ConsoleProgressBar.builder().width(78).minValue(0d).maxValue(max).component(barComponent).build();
+
+	private static final long estimationDelay = 5000;
+	private static Long startedCopying = null;
+	private static String displayedDuration = "";
 
 	public static void main(String[] args) {
 
@@ -150,6 +155,7 @@ public class SyncDir {
 			Utils.sysout("### SYNCHRONIZING ##########################################################");
 			progress = 0;
 			max = bytesToCopy;
+			startedCopying = new Date().getTime();
 			Utils.sysout("### Directories:");
 			sync(dirActions, false);
 			Utils.sysout("### Files:");
@@ -201,10 +207,28 @@ public class SyncDir {
 			boolean isDelete = a instanceof Delete;
 			if ((isDelete && delete) || (!isDelete && !delete)) {
 				a.doAction();
+				removeLastDisplayedDuration();
 				updateProgressBars();
+				printDuration();
 			}
 		}
+		removeLastDisplayedDuration();
 		removeProgressBars();
+	}
+
+	private static void removeLastDisplayedDuration() {
+		String s = StringUtils.repeat("\b", displayedDuration.length());
+		System.out.print(s);
+	}
+
+	private static void printDuration() {
+		if (startedCopying != null) {
+			long duration = new Date().getTime() - startedCopying;
+			if (duration >= estimationDelay) {
+				long d = duration / (long) progress;
+				displayedDuration = ((long) (d * (max - progress))).toHumanReadableDuration() + "\n";
+			}
+		}
 	}
 
 	private static void printSummaryDelete() {
