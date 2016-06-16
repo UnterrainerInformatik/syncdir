@@ -73,12 +73,15 @@ public class SyncDir {
 	private static ProgressBar barComponent = ProgressBar.builder().build();
 	private static ConsoleProgressBar bar = ConsoleProgressBar.builder().width(65).minValue(0d).maxValue(max).component(barComponent).build();
 
-	private static final long estimationDelay = 5000;
+	private static final long estimationDelay = 4000;
 	private static final long estimationInterval = 1000;
 	private static double lastProgress;
 	private static long lastEstimation = 0;
 	private static Long startedCopying = null;
-	private static String displayedDuration = "";
+	private static String currDuration = "";
+	private static Long[] lastEstimations = new Long[5];
+	private static int lastEstimationsIndex;
+	private static String oldDuration = "";
 
 	public static void main(String[] args) {
 
@@ -210,21 +213,13 @@ public class SyncDir {
 			boolean isDelete = a instanceof Delete;
 			if ((isDelete && delete) || (!isDelete && !delete)) {
 				a.doAction();
-				removeDuration();
-				updateProgressBars();
-				printDuration();
 			}
 		}
-		removeDuration();
+		removeDuration(currDuration);
 		removeProgressBars();
 	}
 
-	private static void removeDuration() {
-		System.out.print(StringUtils.repeat("\b", displayedDuration.length()));
-		System.out.flush();
-	}
-
-	private static void printDuration() {
+	static void calculateDuration() {
 		if (startedCopying != null) {
 			long now = new Date().getTime();
 			long duration = now - startedCopying;
@@ -235,16 +230,40 @@ public class SyncDir {
 				window = estimationInterval;
 			}
 			if (duration >= estimationDelay && window >= estimationInterval) {
-				float d = window / (float) p * 100f;
-				long foreCast = (long) (d * (max - progress) / 100f);
+				double d = window / (p * 100d);
+				long foreCast = (long) ((d * (max - progress)) * 100d);
+				enqueue(foreCast);
 
-				displayedDuration = foreCast.toHumanReadableDuration();
+				oldDuration = currDuration;
+				currDuration = " " + ((long) mean()).toHumanReadableDuration();
 				lastEstimation = now;
 				lastProgress = progress;
-				System.out.print(displayedDuration);
-				System.out.flush();
 			}
 		}
+	}
+
+	private static void enqueue(long v) {
+		if (lastEstimationsIndex == 4) {
+			lastEstimationsIndex = 0;
+		}
+		lastEstimations[lastEstimationsIndex] = v;
+		lastEstimationsIndex++;
+	}
+
+	private static double mean() {
+		double m = 0;
+		int c = 0;
+		for (Long l : lastEstimations) {
+			if (l == null) {
+				break;
+			}
+			m += l;
+			c++;
+		}
+		if (c == 0) {
+			return 0;
+		}
+		return m / c;
 	}
 
 	private static void printSummaryDelete() {
@@ -464,7 +483,7 @@ public class SyncDir {
 		}
 	}
 
-	public static void updateProgressBars() {
+	static void updateProgressBars() {
 
 		if (!bar.isDrawInitialized()) {
 			bar.draw(System.out);
@@ -472,11 +491,29 @@ public class SyncDir {
 
 		bar.getFader().setMaximalValue(max);
 		bar.updateValue(progress);
+		calculateDuration();
 
-		if (bar.isRedrawNecessary()) {
-			removeProgressBars();
-			drawProgressBars();
+		if (bar.isRedrawNecessary() || !currDuration.equals(oldDuration)) {
+			removeDuration(oldDuration);
+			if (bar.isRedrawNecessary()) {
+				removeProgressBars();
+				drawProgressBars();
+			}
+			printDuration(currDuration);
+			oldDuration = currDuration;
 		}
+	}
+
+	static void removeDuration(String s) {
+		System.out.print(StringUtils.repeat("\b", s.length()));
+		System.out.print(StringUtils.repeat(" ", s.length()));
+		System.out.print(StringUtils.repeat("\b", s.length()));
+		System.out.flush();
+	}
+
+	static void printDuration(String s) {
+		System.out.print(s);
+		System.out.flush();
 	}
 
 	private static void removeProgressBars() {
