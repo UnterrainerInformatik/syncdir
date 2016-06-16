@@ -75,7 +75,9 @@ syncdir
 or
 syncdir <configFilePathAndName>
 
-If you specify a config file, it has to be a valid apache-configuration file. If you don't, the program will try to fall back on a file named 'config.properties' located in the directory you started the application from.
+If you specify a config file, it has to be a valid apache-configuration file.
+If you don't, the program will try to fall back on a file named 'config.properties' 
+located in the directory you started the application from.
 
 You may as well call it just using command-line parameters like so:
 syncdir <-analyze|-sync> <options> source <source...> target
@@ -142,7 +144,9 @@ sourceDirs = //babylon5/Movies3/source2
 ```
 
 ### Real-Life Examples  
-
+syncdir -s -a -d c:/test/source c:/test/target
+syncdir -s -d //myserver/c$ //myserver/backupdisk
+syncdir -a c:/test/source c:/test/target
 
 ---
 This program is brought to you by [Unterrainer Informatik][homepage]  
