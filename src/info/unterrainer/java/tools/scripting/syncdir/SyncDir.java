@@ -71,15 +71,18 @@ public class SyncDir {
 	private static double max = 65000;
 
 	private static ProgressBar barComponent = ProgressBar.builder().build();
-	private static ConsoleProgressBar bar = ConsoleProgressBar.builder().width(78).minValue(0d).maxValue(max).component(barComponent).build();
+	private static ConsoleProgressBar bar = ConsoleProgressBar.builder().width(65).minValue(0d).maxValue(max).component(barComponent).build();
 
 	private static final long estimationDelay = 5000;
+	private static final long estimationInterval = 1000;
+	private static double lastProgress;
+	private static long lastEstimation = 0;
 	private static Long startedCopying = null;
 	private static String displayedDuration = "";
 
 	public static void main(String[] args) {
 
-		if (Arrays.stream(args).anyMatch(x -> x == "-h" || x == "-H")) {
+		if (Arrays.stream(args).anyMatch(x -> x.equals("-h") || x.equals("-H"))) {
 			argumentError(programName, "", USAGE, fallbackConfigFn);
 		}
 		if (args.length == 0 || args.length == 1) {
@@ -207,26 +210,39 @@ public class SyncDir {
 			boolean isDelete = a instanceof Delete;
 			if ((isDelete && delete) || (!isDelete && !delete)) {
 				a.doAction();
-				removeLastDisplayedDuration();
+				removeDuration();
 				updateProgressBars();
 				printDuration();
 			}
 		}
-		removeLastDisplayedDuration();
+		removeDuration();
 		removeProgressBars();
 	}
 
-	private static void removeLastDisplayedDuration() {
-		String s = StringUtils.repeat("\b", displayedDuration.length());
-		System.out.print(s);
+	private static void removeDuration() {
+		System.out.print(StringUtils.repeat("\b", displayedDuration.length()));
+		System.out.flush();
 	}
 
 	private static void printDuration() {
 		if (startedCopying != null) {
-			long duration = new Date().getTime() - startedCopying;
-			if (duration >= estimationDelay) {
-				long d = duration / (long) progress;
-				displayedDuration = ((long) (d * (max - progress))).toHumanReadableDuration() + "\n";
+			long now = new Date().getTime();
+			long duration = now - startedCopying;
+			long window = now - lastEstimation;
+			double p = progress - lastProgress;
+
+			if (lastEstimation == 0) {
+				window = estimationInterval;
+			}
+			if (duration >= estimationDelay && window >= estimationInterval) {
+				float d = window / (float) p * 100f;
+				long foreCast = (long) (d * (max - progress) / 100f);
+
+				displayedDuration = foreCast.toHumanReadableDuration();
+				lastEstimation = now;
+				lastProgress = progress;
+				System.out.print(displayedDuration);
+				System.out.flush();
 			}
 		}
 	}
