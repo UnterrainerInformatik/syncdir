@@ -69,31 +69,36 @@ We've put one in the target folder already for your convenience.
 ## The Commandline Parameters
 
 ```dos
-R:\SyncDir>java -jar syncdir-0.1-jar-with-dependencies.jar -h
-Usage:
-syncdir
-or
-syncdir <configFilePathAndName>
-
-If you specify a config file, it has to be a valid apache-configuration file.
-If you don't, the program will try to fall back on a file named 'config.properties' 
-located in the directory you started the application from.
-
-You may as well call it just using command-line parameters like so:
-syncdir <-analyze|-sync> <options> source <source...> target
-
-where...
-[-analyze -a]|[-sync -s]
-                One of them is mandatory. If you choose -sync you may
-                as well add -analyze later on in the options.
-options:
--h -?           Shows this information.
--delete -del -d Does not only sync all the files and directories to the target,
-                but deletes superfluous files and directories on the target as well.
--analyze -a     Does an additional analysis of the actions that will be taken
-                in order to sync the directories and prints them out to the console.
-                If you specify -analyze as main-parameter instead of -sync the program
-                doesn't do anything else but to analyze.
+usage: syncdir [options] <source> [<source>...] <target>
+ - <source> [<source>...] <target>   a space-separated list of source
+                                     directories followed by a single
+                                     target directory. If you specify the
+                                     target directory only, then syncdir
+                                     assumes you want to use your current
+                                     directory as source. Encase in " to
+                                     support spaces in your
+                                     directory-names
+ -?                                  see -h
+ -A                                  see -a
+ -a,--analyze                        doesn't synchronize your directories
+                                     by actually executing the calculated
+                                     changes. Just prints out the
+                                     detailed analysis of what would have
+                                     happened. Argument -p is redundant
+                                     when using this option
+ -D                                  see -d
+ -d,--del                            when synchronizing, files and
+                                     directories on the target without
+                                     matching source get deleted
+ -H                                  see -h
+ -h,--help                           displays this information
+ -P                                  see -p
+ -p,--print                          prints the detailed analysis of
+                                     what's going to happen
+                                     
+Also, you may specify a valid apache-configuration config file as the first and only parameter.
+If you don't specify any parameters at all, the program will try to fall back on a file named
+'config.properties' located in the directory you started the application from.
 ```
 
 ## The Config File  
@@ -144,9 +149,31 @@ sourceDirs = //babylon5/Movies3/source2
 ```
 
 ### Real-Life Examples  
-syncdir -s -a -d c:/test/source c:/test/target
-syncdir -s -d //myserver/c$ //myserver/backupdisk
+
+##### Property-file mode
+```dos
+syncdir
+```
+
+##### Property-file mode with your own file
+```dos
+syncdir myconf.properties
+```
+
+##### Commandline mode, only analyze  
+```dos
+syncdir -a -d c:/test/source c:/test/target
+```
+
+##### Commandline mode, sync and delete
+```dos
+syncdir -d //myserver/c$ //myserver/backupdisk
+```
+
+##### Commandline mode, only analyze 
+```dos
 syncdir -a c:/test/source c:/test/target
+```
 
 ---
 This program is brought to you by [Unterrainer Informatik][homepage]  

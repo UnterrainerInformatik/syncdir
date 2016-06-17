@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -79,20 +78,47 @@ public class SyncDir {
 	private static long lastEstimation = 0;
 	private static Long startedCopying = null;
 	private static String currDuration = "";
-	private static Long[] lastEstimations = new Long[5];
+	private static Long[] lastEstimations = new Long[10];
 	private static int lastEstimationsIndex;
 	private static String oldDuration = "";
 
 	public static void main(String[] args) {
 
-		if (Arrays.stream(args).anyMatch(x -> x.equals("-h") || x.equals("-H") || x.equals("-?"))) {
-			argumentError(programName, "", USAGE, fallbackConfigFn);
+		boolean tryCli = true;
+		String configFileError = "You may specify a valid apache-configuration config file. "
+				+ "If you don't, the program will try to fall back on a file named '"
+				+ fallbackConfigFn
+				+ "' located in the directory you started the application from.\n";
+		if (args.length == 0) {
+			Object[] r = loadConfigurationFile(fallbackConfigFn);
+			if ((boolean) r[0]) {
+				System.out.println(configFileError + "That fallback-config file was not found.");
+			} else if ((boolean) r[1]) {
+				System.out.println(configFileError + "That fallback-config file was found, but had the wrong format.");
+			} else {
+				config = (Configuration) r[2];
+				tryCli = false;
+			}
 		}
-		if (args.length == 0 || args.length == 1) {
-			String configFileName = parseArg(args, 0);
-			config = readConfigurationFile(configFileName, fallbackConfigFn);
-		} else {
-			parseCommandLine(args);
+		if (args.length == 1) {
+			String n = parseArg(args, 0);
+			Object[] r = loadConfigurationFile(n);
+			if (!(boolean) r[0] && !(boolean) r[1]) {
+				config = (Configuration) r[2];
+				tryCli = false;
+			}
+
+			if (tryCli && (boolean) r[0]) {
+				r = loadConfigurationFile(fallbackConfigFn);
+				if (!(boolean) r[0] && !(boolean) r[1]) {
+					config = (Configuration) r[2];
+					tryCli = false;
+				}
+			}
+		}
+
+		if (tryCli) {
+			config = CommandLineArgumentsParser.parse(args, new PropertiesConfiguration(), fallbackConfigFn);
 		}
 
 		mode = config.getString("mode");
@@ -103,10 +129,6 @@ public class SyncDir {
 		mode = mode.toLowerCase();
 		if (!mode.contains("sync") && !mode.contains("analyze")) {
 			Utils.sysout("You have to specify a valid mode! It has to contain either 'sync' or 'analyze' if you want a print-out analysis.");
-			System.exit(1);
-		}
-		if (!mode.contains("sync") && mode.contains("delete")) {
-			Utils.sysout("You have to specify a valid mode! 'delete' is only viable in 'sync' mode, not in 'analyze' mode.");
 			System.exit(1);
 		}
 
@@ -166,45 +188,10 @@ public class SyncDir {
 			sync(dirActions, false);
 			Utils.sysout("### Files:");
 			sync(fileActions, false);
-		}
 
-		Utils.sysout("Done.");
-	}
-
-	private static void parseCommandLine(String[] args) {
-		config = new PropertiesConfiguration();
-		String confVal = "";
-		String curr = parseArg(args, 0).toLowerCase();
-		if (curr.equals("-sync") || curr.equals("-s")) {
-			confVal += " sync";
-		} else if (curr.equals("-analyze") || curr.equals("-a")) {
-			confVal += " analyze";
-		} else {
-			argumentError(programName, "First argument is not optional. ", USAGE, fallbackConfigFn);
+			long duration = new Date().getTime() - startedCopying;
+			Utils.sysout("Overall duration: " + duration.toHumanReadableDuration());
 		}
-
-		String targetDir = null;
-		List<String> sources = new ArrayList<>();
-		for (int i = 1; i < args.length; i++) {
-			curr = parseArg(args, i).toLowerCase();
-			if (curr.equals("-analyze") || curr.equals("-a")) {
-				confVal += " analyze";
-			} else if (curr.equals("-delete") || curr.equals("-del") || curr.equals("-d")) {
-				confVal += " delete";
-			} else {
-				if (i == args.length - 1) {
-					// This is the last parameter.
-					targetDir = curr;
-				} else {
-					sources.add(curr);
-				}
-			}
-		}
-		config.addProperty("mode", confVal);
-		if (targetDir != null) {
-			config.addProperty("targetDir", targetDir);
-		}
-		config.addProperty("sourceDirs", sources);
 	}
 
 	private static void sync(List<Action> actions, boolean delete) {
@@ -243,7 +230,7 @@ public class SyncDir {
 	}
 
 	private static void enqueue(long v) {
-		if (lastEstimationsIndex == 4) {
+		if (lastEstimationsIndex == lastEstimations.length - 1) {
 			lastEstimationsIndex = 0;
 		}
 		lastEstimations[lastEstimationsIndex] = v;
@@ -291,24 +278,6 @@ public class SyncDir {
 		Utils.sysout("### Files:");
 		printList(fileActions, "");
 		Utils.sysout();
-	}
-
-	private static void argumentError(String program, String error, String usage, String fallbackConfigFn) {
-		Utils.sysout(error
-				+ "Usage:\n"
-				+ program
-				+ "\n"
-				+ "or\n"
-				+ program
-				+ " <configFilePathAndName>\n\n"
-				+ "If you specify a config file, it has to be a valid apache-configuration file. "
-				+ "If you don't, the program will try to fall back on a file named '"
-				+ fallbackConfigFn
-				+ "' located in the directory you started the application from."
-				+ "\n\n"
-				+ "You may as well call it just using command-line parameters like so:\n"
-				+ usage);
-		System.exit(1);
 	}
 
 	private static void readData() {
@@ -428,43 +397,22 @@ public class SyncDir {
 		return result;
 	}
 
-	/**
-	 * After executing this part, the global variable configuration is either set, or the application exited.
-	 *
-	 * @param configFileName
-	 */
-	private static Configuration readConfigurationFile(String fn, String fallbackFn) {
-		Configuration result = null;
-		if (fn != null) {
-			result = loadConfigurationFile(fn,
-					"The file you specified via the parameter '%s' is missing.\nTrying to fall back to config.properties in execution directory.",
-					"The file you specified via the parameter '%s' is not a valid config file.\nTrying to fall back to property file in execution directory.");
-		}
-		if (result == null) {
-			result = loadConfigurationFile(fallbackFn,
-					"Config file not found.\nSee to it that there is a proper config file called '%s' in the execution directory or take any other config "
-							+ "file and start the program with the path (to that file) and name as a commandline argument.",
-					"Config file '%s' is not a valid config file.");
-		}
-		if (result == null) {
-			System.exit(1);
-		}
-		return result;
-	}
-
-	private static Configuration loadConfigurationFile(String fn, String errorMessageNotFound, String errorMessageWrongFormat) {
-		Configuration result = null;
+	private static Object[] loadConfigurationFile(String fn) {
+		Object[] r = new Object[3];
+		r[0] = false; // not found
+		r[1] = false; // wrong format
+		r[2] = null; // the configuration
 		File f = new File(fn);
 		if (f.exists()) {
 			try {
-				result = new PropertiesConfiguration(f);
+				r[2] = new PropertiesConfiguration(f);
 			} catch (ConfigurationException e) {
-				Utils.sysout(String.format(errorMessageWrongFormat, fn));
+				r[1] = true;
 			}
 		} else {
-			Utils.sysout(String.format(errorMessageNotFound, fn));
+			r[0] = true;
 		}
-		return result;
+		return r;
 	}
 
 	private static void checkFileExists(List<String> dirs, String parameterName) {
