@@ -87,7 +87,7 @@ usage: syncdir [options] <source> [<source>...] <target>
                                      happened. Argument -p is redundant
                                      when using this option
  -D                                  see -d
- -d,--del                            when synchronizing, files and
+ -d,--delete                         when synchronizing, files and
                                      directories on the target without
                                      matching source get deleted
  -H                                  see -h

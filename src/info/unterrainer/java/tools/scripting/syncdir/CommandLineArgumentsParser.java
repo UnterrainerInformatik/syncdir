@@ -33,8 +33,11 @@ public class CommandLineArgumentsParser {
 		options.addOption(Option.builder("P").desc("see -p").build());
 		options.addOption(Option.builder("p").longOpt("print").desc("prints the detailed analysis of what's going to happen").build());
 		options.addOption(Option.builder("D").desc("see -d").build());
-		options.addOption(
-				Option.builder("d").longOpt("del").desc("when synchronizing, files and directories on the target without matching source get deleted").build());
+		options.addOption(Option
+				.builder("d")
+				.longOpt("delete")
+				.desc("when synchronizing, files and directories on the target without matching source get deleted")
+				.build());
 		options.addOption(Option
 				.builder("")
 				.argName("source> [<source>...] <target")
