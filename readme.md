@@ -41,7 +41,8 @@ All of our projects facilitate the [Project Lombok][lombok]. So please download 
 
 **Beware:** Project Lombok currently doesn't play well with Eclipse Mars (4.5). You'll get build-errors using the extension methods as of now.
 
-# SyncDir
+
+# [![SyncDir Icon](icon.png)][icon_linkback] SyncDir
 This is yet another synchronization program.
 I've come across the problem when I wanted to backup my large music-collection periodically. Some things change, most of them don't. Depends on how many albums I am buying at the moment.
 Usually I'm fine with just copy-pasting the root folders from the source-pladder to the backup-disc.
@@ -185,3 +186,4 @@ Project lead is [Gerald Unterrainer][geraldmail]
 [makemkv]: http://www.makemkv.com/
 [lombok]: https://projectlombok.org
 [github]: https://github.com/UnterrainerInformatik/syncdir
+[icon_linkback]: http://www.visualpharm.com/
