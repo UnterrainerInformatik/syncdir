@@ -161,7 +161,7 @@ syncdir
 syncdir myconf.properties
 ```
 
-##### Commandline mode, only analyze  
+##### Commandline mode, analyze only  
 ```dos
 syncdir -a -d c:/test/source c:/test/target
 ```
@@ -171,7 +171,7 @@ syncdir -a -d c:/test/source c:/test/target
 syncdir -d //myserver/c$ //myserver/backupdisk
 ```
 
-##### Commandline mode, only analyze 
+##### Commandline mode, analyze only  
 ```dos
 syncdir -a c:/test/source c:/test/target
 ```
